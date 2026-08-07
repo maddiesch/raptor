@@ -40,7 +40,6 @@ func migrate(ctx context.Context, conn *pgx.Conn, file string) error {
 	if len(key) > 32 {
 		panic("migration key is too long: " + key)
 	}
-	slog.DebugContext(ctx, "Migrate", slog.String("key", key), slog.String("file", file))
 
 	t, err := conn.Begin(ctx)
 	if err != nil {
@@ -53,6 +52,7 @@ func migrate(ctx context.Context, conn *pgx.Conn, file string) error {
 	if err != nil || exists {
 		return err
 	}
+	slog.DebugContext(ctx, "Migrate", slog.String("key", key), slog.String("file", file))
 
 	content, err := fileFS.ReadFile(file)
 	if err != nil {
