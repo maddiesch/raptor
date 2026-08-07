@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"runtime"
 	"sort"
+	"sync/atomic"
 	"time"
 )
 
@@ -17,6 +18,7 @@ type ConcurrentWeightedRunner struct {
 
 	emptyCooldown time.Duration
 	id            string
+	quiet         atomic.Bool
 }
 
 func NewConcurrentWeightedRunner(queue map[string]int, workers map[string]Worker) *ConcurrentWeightedRunner {
@@ -27,6 +29,10 @@ func NewConcurrentWeightedRunner(queue map[string]int, workers map[string]Worker
 		emptyCooldown: 1 * time.Second,
 		id:            newRunnerID(),
 	}
+}
+
+func (c *ConcurrentWeightedRunner) Quiet() {
+	c.quiet.Store(true)
 }
 
 func (c *ConcurrentWeightedRunner) Run(ctx context.Context, db DB) error {
@@ -42,6 +48,9 @@ func (c *ConcurrentWeightedRunner) Run(ctx context.Context, db DB) error {
 			case <-ctx.Done():
 				return
 			default:
+				if c.quiet.Load() {
+					return
+				}
 				if err := c.dequeue(ctx, db, jobs); err != nil {
 					cancel(err)
 					return
